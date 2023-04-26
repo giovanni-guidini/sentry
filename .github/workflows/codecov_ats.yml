@@ -1,0 +1,109 @@
+name: Codecov ATS test
+
+on:
+  push:
+
+env:
+  CLI_VERSION: v0.1.5
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  codecov-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10.10"
+      - name: Download Codecov CLI
+        run: |
+          pip install pytest codecov-cli
+      - name: Save commit info
+        run: |
+          codecovcli create-commit --git-service=github --token=${{ secrets.CODECOV_TOKEN }}
+      - name: Create report
+        run: |
+          codecovcli create-report --git-service=github --token=${{ secrets.CODECOV_TOKEN }}
+  static-analysis:
+    needs: codecov-report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10.10"
+      - name: Download Codecov CLI
+        run: |
+          pip install pytest codecov-cli
+      - name: Run Static Analysis
+        run: |
+          codecovcli static-analysis --token=${{ secrets.STATIC_TOKEN }} \
+          --folders-to-exclude .artifacts \
+          --folders-to-exclude .github \
+          --folders-to-exclude .venv \
+          --folders-to-exclude static \
+          --folders-to-exclude bin
+  # files-changed:
+  #   name: detect what files changed
+  #   runs-on: ubuntu-20.04
+  #   timeout-minutes: 3
+  #   # Map a step output to a job output
+  #   outputs:
+  #     api_docs: ${{ steps.changes.outputs.api_docs }}
+  #     backend: ${{ steps.changes.outputs.backend_all }}
+  #     backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
+  #     backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+  #     migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+  #     plugins: ${{ steps.changes.outputs.plugins }}
+  #   steps:
+  #     - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+
+  #     - name: Check for backend file changes
+  #       uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
+  #       id: changes
+  #       with:
+  #         token: ${{ github.token }}
+  #         filters: .github/file-filters.yml
+  # label-analysis:
+  #   # if: needs.files-changed.outputs.backend == 'true'
+  #   needs: [static-analysis, files-changed]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+  #     # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+  #     fail-fast: false
+  #     matrix:
+  #       pg-version: ['14']
+  #   steps:
+  #     - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+  #       with:
+  #         fetch-depth: '2'
+  #     - name: Setup sentry env
+  #       uses: ./.github/actions/setup-sentry
+  #       id: setup
+  #       with:
+  #         snuba: true
+  #         # Right now, we run so few bigtable related tests that the
+  #         # overhead of running bigtable in all backend tests
+  #         # is way smaller than the time it would take to run in its own job.
+  #         bigtable: true
+  #         pg-version: ${{ matrix.pg-version }}
+  #     - name: Download Codecov CLI
+  #       run: |
+  #         pip install --extra-index-url https://pypi.org/simple pytest codecov-cli
+  #     - name: Run backend tests with ATS
+  #       run: |
+  #         BASE_COMMIT=$(git rev-parse HEAD^)
+  #         echo "Using base commit ${BASE_COMMIT}"
+  #         codecovcli -v --codecov-yml-path=codecov.yml label-analysis --token=${{ secrets.STATIC_TOKEN }} --base-sha=${BASE_COMMIT}
+  #     - name: Upload to Codecov
+  #       run: |
+  #         coverage json --show-contexts -o .artifacts/label.coverage.json
+  #         rm .coverage
+  #         codecovcli --verbose do-upload --flag smart-backend --file=.artifacts/label.coverage.json --token=${{ secrets.CODECOV_TOKEN }}  --fail-on-error
