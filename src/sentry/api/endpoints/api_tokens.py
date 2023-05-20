@@ -72,5 +72,5 @@ class ApiTokensEndpoint(Endpoint):
             return Response({"token": ""}, status=400)
 
         ApiToken.objects.filter(user_id=user_id, token=token, application__isnull=True).delete()
-
+        # small change here
         return Response(status=204)
