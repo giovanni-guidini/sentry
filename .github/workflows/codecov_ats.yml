@@ -106,7 +106,7 @@ jobs:
           pip install --extra-index-url https://pypi.org/simple --extra-index-url https://test.pypi.org/simple/ --no-cache-dir codecov-cli==0.1.11.post4
       - name: Run backend test with ATS (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          BASE_COMMIT=$(git rev-parse HEAD^)
+          BASE_COMMIT=073a7890bfbf695e606697c6e6939ac6fab9de5a
           echo "Using base commit ${BASE_COMMIT}"
           codecovcli --codecov-yml-path=codecov_cli.yml --verbose label-analysis --token=${{ secrets.STATIC_TOKEN }} --base-sha=${BASE_COMMIT}
       - name: Upload to Codecov
