@@ -14,8 +14,4 @@ class ActorTest(TestCase):
 
         actor = Actor.objects.create(type=1)
         user2 = User.objects.create(username="meow", actor_id=actor.id)
-        assert user2.actor == actor
-
-        actor = Actor.objects.create(type=1)
-        user3 = User.objects.create(username="woof", actor=actor)
-        assert user3.actor == actor
+        assert user2.actor_id == actor.id
