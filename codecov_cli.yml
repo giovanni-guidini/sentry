@@ -1,0 +1,16 @@
+cli:
+  plugins:
+    pycoverage:
+      report_type: "json"
+  runners:
+    python:
+      include_curr_dir: true
+      collect_tests_options:
+        - "tests/sentry"
+        - "tests/integration"
+        - "--ignore=tests/sentry/eventstream/kafka"
+        - "--ignore=tests/sentry/post_process_forwarder"
+        - "--ignore=tests/sentry/snuba"
+        - "--ignore=tests/sentry/search/events"
+        - "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py"
+        - "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
