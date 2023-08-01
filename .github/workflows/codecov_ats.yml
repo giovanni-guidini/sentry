@@ -97,7 +97,7 @@ jobs:
         - name: Label Analysis
           continue-on-error: true
           run: |
-            BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
+            BASE_COMMIT=$(git rev-parse ${{ github.sha }}^)
             echo $BASE_COMMIT
             codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}
           env:
