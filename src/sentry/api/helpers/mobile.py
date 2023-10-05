@@ -3,6 +3,7 @@ from sentry.profiles.device import IOS_MODELS
 
 
 def get_readable_device_name(device: str) -> str:
+    print("Change")
     if device in IOS_MODELS:
         return IOS_MODELS[device]
     if device in ANDROID_MODELS:
