@@ -7,7 +7,7 @@ name: Carry forward codecov reports
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   carryforward-reports-and-upload-static-analysis:
