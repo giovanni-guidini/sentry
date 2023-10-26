@@ -97,7 +97,7 @@ jobs:
             # Directory for the artifacts from this step
             mkdir .artifacts/codecov_ats
             # This is the base for the git diff BASE..HEAD
-            BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
+            BASE_COMMIT=028ac8329ebbc40727f61f5a8dba83ac8363b0ed
             # Get list of tests to run from Codecov
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
             # Post processing and validation
