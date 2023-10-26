@@ -13,12 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    # the default default is:
-    #      bash --noprofile --norc -eo pipefail {0}
-    shell: bash --noprofile --norc -eo pipefail -ux {0}
-
 jobs:
     files-changed:
         name: detect what files changed
@@ -158,6 +152,8 @@ jobs:
             else
               echo "No tests to run"
             fi
+          shell: bash --noprofile --norc -eo pipefail -ux {0}
+
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
             : ${{ needs.coverage-ats.outputs.ATS_TESTS_TO_SKIP }}
@@ -171,3 +167,4 @@ jobs:
             else
               echo "No tests to run"
             fi
+          shell: bash --noprofile --norc -eo pipefail -ux {0}
