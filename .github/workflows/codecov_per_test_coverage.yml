@@ -4,7 +4,7 @@ name: Backend tests with --cov-context=test
 # However there's a performance toll in running tests with this flag.
 # So we will be running the test suite every hour in master
 
-on: workflow_dispatch
+on: [ workflow_dispatch, workflow_call]
 
 
 jobs:
