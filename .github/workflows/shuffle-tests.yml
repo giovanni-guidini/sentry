@@ -10,7 +10,7 @@ on:
         default: 'true'
   # Run once a week on sunday
   schedule:
-    - cron: '0 1 * * 0'
+    - cron: '0 * * * 5'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -21,7 +21,7 @@ env:
 
 jobs:
   per-test-coverage:
-    if: ${{ inputs.per-test-coverage == 'true' }}
+    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
     uses: ./.github/workflows/codecov_per_test_coverage.yml
     secrets: inherit
   backend-test:
