@@ -100,15 +100,18 @@ jobs:
               testcount() { jq <<< $output ".$1 | length"; }
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
-              tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
               # Parse any potential errors that made ATS fallback to running all tests
               # And surface them
               ats_fallback_reason=$(jq <<< "$output" '.ats_fallback_reason')
               if [ "$ats_fallback_reason" == "null" ]; then
-                  tee <<< '{"ats_success": true, "error": null}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
+                ats_success=true
               else
-                  tee <<< "{\"ats_success\": false, \"error\": $ats_fallback_reason}" "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
+                ats_success=false
               fi
+              tee <<< \
+                "{\"ats_success\": $ats_success, \"error\": $ats_fallback_reason, \"tests_to_run\": $run_count, \"tests_analyzed\": $((run_count+skip_count))}" \
+                "$GITHUB_STEP_SUMMARY" \
+                ".artifacts/codecov_ats_result.json"
             else
               tee <<< "ATS failed. Can't get list of tests to run." "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
