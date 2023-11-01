@@ -38,9 +38,6 @@ jobs:
         if: needs.files-changed.outputs.backend == 'true'
         needs: files-changed
         runs-on: ubuntu-latest
-        # Map a step output to a job output
-        outputs:
-          ats_success: ${{ steps.codecov_automated_test_selection.outputs.ats_success }}
         steps:
         - uses: actions/checkout@v3
           with:
@@ -90,7 +87,6 @@ jobs:
         # The base commit will be the parent commit (apparently commits on master don't exist in codecov)
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
-          continue-on-error: true
           run: |
             BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
             echo $BASE_COMMIT
@@ -105,9 +101,16 @@ jobs:
               run_count=$(testcount ats_tests_to_run)
               skip_count=$(testcount ats_tests_to_skip)
               tee <<< "Selected $run_count / $(($run_count + $skip_count)) tests to run" "$GITHUB_STEP_SUMMARY"
-              echo "ats_success=true" >> "$GITHUB_OUTPUT"
+              # Parse any potential errors that made ATS fallback to running all tests
+              # And surface them
+              ats_fallback_reason=$(jq <<< "$output" '.ats_fallback_reason')
+              if [ "$ats_fallback_reason" == "null" ]; then
+                  tee <<< '{"ats_success": true, "error": null}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
+              else
+                  tee <<< "{\"ats_success\": false, \"error\": $ats_fallback_reason}" "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
+              fi
             else
-              tee <<< "ATS failed. Can't get list of tests to run. Fallback to all tests" "$GITHUB_STEP_SUMMARY"
+              tee <<< "ATS failed. Can't get list of tests to run." "$GITHUB_STEP_SUMMARY"
               # We need not forget to add the search options in the fallback command, otherwise pytest might run more tests than expected
               # These search options match what's defined in codecov.yml:105
               jq '@json' --raw-output <<< '[
@@ -120,9 +123,10 @@ jobs:
                 "--ignore=tests/sentry/search/events",
                 "--ignore=tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py",
                 "--ignore=tests/sentry/region_to_control/test_region_to_control_kafka.py"
-              ]' > .artifacts/codecov_ats_tests_to_run.json
-              echo '[]' > .artifacts/codecov_ats_tests_to_skip.json
-              echo "ats_success=false" >> "$GITHUB_OUTPUT"
+              ]' > .artifacts/codecov_ats_tests_to_skip.json
+              echo '[]' > .artifacts/codecov_ats_tests_to_run.json
+              # If we reached this point it means that ATS failed with some error
+              tee <<< '{"ats_success": false, "error": "exception_raised"}' "$GITHUB_STEP_SUMMARY" ".artifacts/codecov_ats_result.json"
             fi
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -136,6 +140,11 @@ jobs:
           with:
             name: ats_tests_to_skip.json
             path: .artifacts/codecov_ats_tests_to_skip.json
+            if-no-files-found: error
+        - uses: actions/upload-artifact@v3
+          with:
+            name: ats_result.json
+            path: .artifacts/codecov_ats_result.json
             if-no-files-found: error
     # The actual running of tests would come here, after the labels are available
     # Something like pytest <options> $ATS_TESTS_TO_RUN
@@ -161,11 +170,10 @@ jobs:
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats_tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+              cat .artifacts/codecov_ats_tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
-
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
             length_of_tests=$(cat .artifacts/codecov_ats_tests_to_skip.json | jq 'length')
@@ -173,7 +181,7 @@ jobs:
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats_tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo
+              cat .artifacts/codecov_ats_tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
