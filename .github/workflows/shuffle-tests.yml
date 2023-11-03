@@ -21,7 +21,7 @@ env:
 
 jobs:
   per-test-coverage:
-    if: ${{ inputs.per-test-coverage == 'true' || github.event_name == 'schedule' }}
+    if: ${{ inputs.per-test-coverage == 'true' }}
     uses: ./.github/workflows/codecov_per_test_coverage.yml
     secrets: inherit
   backend-test:
