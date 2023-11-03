@@ -94,9 +94,13 @@ jobs:
         - name: Codecov Automated Test Selection
           id: codecov_automated_test_selection
           run: |
+            # Directory for the artifacts from this step
+            mkdir .artifacts/codecov_ats
+            # This is the base for the git diff BASE..HEAD
             BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
-            echo $BASE_COMMIT
+            # Get list of tests to run from Codecov
             output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
+            # Post processing and validation
             if [ -n "${output}" ];
             then
 
