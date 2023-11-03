@@ -161,10 +161,6 @@ jobs:
           with:
             name: codecov_ats
             path: .artifacts
-        - name: Debug artifacts
-          run: |
-            ls
-            ls .artifacts
         - name: Debug ATS_TESTS_TO_RUN
           run: |
             length_of_tests=$(cat .artifacts/tests_to_run.json | jq 'length')
