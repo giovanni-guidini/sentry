@@ -161,25 +161,29 @@ jobs:
           with:
             name: codecov_ats
             path: .artifacts
+        - name: Debug artifacts
+          run: |
+            ls
+            ls .artifacts
         - name: Debug ATS_TESTS_TO_RUN
           run: |
-            length_of_tests=$(cat .artifacts/codecov_ats/tests_to_run.json | jq 'length')
+            length_of_tests=$(cat .artifacts/tests_to_run.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test' (hence -gt 1)
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats/tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+              cat .artifacts/tests_to_run.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
         - name: Debug ATS_TESTS_TO_SKIP
           run: |
-            length_of_tests=$(cat .artifacts/codecov_ats/tests_to_skip.json | jq 'length')
+            length_of_tests=$(cat .artifacts/tests_to_skip.json | jq 'length')
             # The 1st value doesn't count, it's '--cov-context=test'
             if [ $length_of_tests -gt 1 ]; then
               echo "Running $length_of_tests tests"
               # --raw-output0 doesn't work.
-              cat .artifacts/codecov_ats/tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
+              cat .artifacts/tests_to_skip.json | jq 'join("\u0000")' --raw-output | tr -d '\n' | xargs -r0 echo 'pytest'
             else
               echo "No tests to run"
             fi
