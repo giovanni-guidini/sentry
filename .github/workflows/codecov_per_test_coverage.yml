@@ -21,13 +21,13 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4, 5, 6]
+        instance: [0, 1, 2, 3, 4, 5, 6, 7, 8]
         pg-version: ['14']
 
     env:
       # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
       # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
-      MATRIX_INSTANCE_TOTAL: 7
+      MATRIX_INSTANCE_TOTAL: 9
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
@@ -49,6 +49,30 @@ jobs:
           bigtable: true
           pg-version: ${{ matrix.pg-version }}
 
+      # TODO: Change this for the pip installation
+      # I resorted to the binary because via pip it's not installing and I don't know how to fix it
+      # See https://github.com/giovanni-guidini/sentry/actions/runs/7224632563/job/19686421329 for example
+      - name: Install Codecov CLI (binary)
+        run: |
+          # https://docs.codecov.com/docs/codecov-uploader
+          # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-uploader
+          mkdir codecovcli_install_tmp
+          cd codecovcli_install_tmp
+          curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --import # Import Codecov gpg key
+          # Download all binaries
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov.SHA256SUM
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov.SHA256SUM.sig
+          # Verify binaries
+          gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+          shasum -a 256 -c codecov.SHA256SUM
+          cd ..
+          mv codecovcli_install_tmp/codecov codecovcli
+          chmod +x codecovcli
+          rm -r codecovcli_install_tmp
+          ./codecovcli --version
+
+
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }}) with --cov-context=test
         id: run_backend_tests
         run: |
@@ -60,16 +84,21 @@ jobs:
         if: ${{ always() }}
         run: |
           coverage json --show-contexts -o .artifacts/python.coverage.json
-
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
       - name: Upload coverage - special case to test Codecov ATS
         if: ${{ always() }}
-        uses: codecov/codecov-action@v4-beta
+        run: |
+          ./codecovcli do-upload --plugin compress-pycoverage --file .artifacts/python.coverage.codecov.json --disable-search --flag smart-tests
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          files: .artifacts/python.coverage.codecov.json
-          flags: smart-tests
-          plugins: compress-pycoverage
+        continue-on-error: true
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
+      - name: Upload coverage - special case to test Codecov ATS (staging)
+        if: ${{ always() }}
+        run: |
+          ./codecovcli --url=${{ secrets.CODECOV_STAGING_URL }} do-upload --plugin compress-pycoverage --file .artifacts/python.coverage.codecov.json --disable-search --flag smart-tests
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_STAGING_TOKEN }}
         continue-on-error: true
