@@ -66,9 +66,28 @@ jobs:
           # is way smaller than the time it would take to run in its own job.
           bigtable: true
           pg-version: 14
-      - name: Download Codecov CLI
+      # TODO: Change this for the pip installation
+      # I resorted to the binary because via pip it's not installing and I don't know how to fix it
+      # See https://github.com/giovanni-guidini/sentry/actions/runs/7224632563/job/19686421329 for example
+      - name: Install Codecov CLI (binary)
         run: |
-          pip install --extra-index-url https://pypi.org/simple --no-cache-dir codecov-cli>=0.4.1
+          # https://docs.codecov.com/docs/codecov-uploader
+          # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-uploader
+          mkdir codecovcli_install_tmp
+          cd codecovcli_install_tmp
+          curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --import # Import Codecov gpg key
+          # Download all binaries
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov.SHA256SUM
+          curl -O https://cli.codecov.io/v0.4.2/linux/codecov.SHA256SUM.sig
+          # Verify binaries
+          gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+          shasum -a 256 -c codecov.SHA256SUM
+          cd ..
+          mv codecovcli_install_tmp/codecov codecovcli
+          chmod +x codecovcli
+          rm -r codecovcli_install_tmp
+          ./codecovcli --version
       # Creates the commit and report objects in codecov
       - name: Codecov startup
         run: |
