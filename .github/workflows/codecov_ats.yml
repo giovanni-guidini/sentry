@@ -91,14 +91,14 @@ jobs:
       # Creates the commit and report objects in codecov
       - name: Codecov startup
         run: |
-          codecovcli create-commit
-          codecovcli create-report
+          ./codecovcli create-commit
+          ./codecovcli create-report
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       # Sends static analysis information to codecov
       - name: Static Analysis
         run: |
-          codecovcli static-analysis --token=${CODECOV_STATIC_TOKEN} \
+          ./codecovcli static-analysis --token=${CODECOV_STATIC_TOKEN} \
           --folders-to-exclude .artifacts \
           --folders-to-exclude .github \
           --folders-to-exclude .venv \
@@ -117,7 +117,7 @@ jobs:
           # This is the base for the git diff BASE..HEAD
           BASE_COMMIT=$(git merge-base ${{ github.sha }}^ origin/master)
           # Get list of tests to run from Codecov
-          output=$(codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
+          output=$(./codecovcli --codecov-yml-path=codecov.yml label-analysis --dry-run --token=${CODECOV_STATIC_TOKEN} --base-sha=${BASE_COMMIT}) || true
           # Post processing and validation
           if [ -n "${output}" ];
           then
