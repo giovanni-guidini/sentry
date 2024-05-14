@@ -15,6 +15,7 @@ class APIOwnersTestCase(TestCase):
             if line.startswith("/src/"):
                 tokens = [s.strip() for s in line.split("@getsentry/")]
                 self.teams.update(tokens[1:])
+        # trigger CI run for tests
 
     def test_api_owner_owns_api(self):
         for owner in ApiOwner:
